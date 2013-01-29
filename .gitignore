@@ -1,0 +1,16 @@
+*.log
+*.txt
+*.bmp
+*.rc
+*.ncb
+*.sdf
+*.sln
+*.suo
+*.vcproj
+*.vcxproj
+*.filters
+*.htm
+*.XML
+*.css
+*.xslt
+*.png
