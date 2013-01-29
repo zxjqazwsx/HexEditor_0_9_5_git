@@ -32,13 +32,23 @@
 #include "ModifyMenu.h"
 #include <stdlib.h>
 
+#define  ZWJ_ADD 
+
+#ifdef ZWJ_ADD              //1.add header file
+#include "SuperDlg.h"
+#endif // ZWJ_ADD
+
+
 #include <shlwapi.h>
 #include <shlobj.h>
 #include <assert.h>
 
 /* menu entry count */
-const
-INT				nbFunc	= 9;
+#ifdef ZWJ_ADD				//2.add func array
+const INT				nbFunc	= 10;
+#else
+const INT				nbFunc	= 9;
+#endif
 
 /* for subclassing */
 WNDPROC	wndProcNotepad = NULL;
@@ -72,6 +82,11 @@ OptionDlg		propDlg;
 GotoDlg			gotoDlg;
 PatternDlg		patDlg;
 HelpDlg			helpDlg;
+
+#ifdef ZWJ_ADD
+SuperDlg			SuperDlg;	//3.add Dlg Obj
+#endif
+
 tClipboard		g_clipboard;
 
 /* main properties for lists */
@@ -104,7 +119,7 @@ BOOL APIENTRY DllMain( HANDLE hModule,
 			funcItem[6]._pFunc = NULL;
 			funcItem[7]._pFunc = openPropDlg;
 			funcItem[8]._pFunc = openHelpDlg;
-			
+
 			/* Fill menu names */
 			_tcscpy(funcItem[0]._itemName, _T("View in &HEX"));
 			_tcscpy(funcItem[1]._itemName, _T("&Compare HEX"));
@@ -128,6 +143,12 @@ BOOL APIENTRY DllMain( HANDLE hModule,
 			funcItem[6]._pShKey				= NULL;
 			funcItem[7]._pShKey				= NULL;
 			funcItem[8]._pShKey				= NULL;
+
+#ifdef ZWJ_ADD				//4.init func array
+			funcItem[9]._pFunc = openSuperDlg;
+			_tcscpy(funcItem[9]._itemName, _T("&Search SuperBlock"));
+			funcItem[9]._pShKey				= NULL;
+#endif
 
 			g_hFindRepDlg     = NULL;
 			memset(&g_clipboard, 0, sizeof(tClipboard));
@@ -185,6 +206,9 @@ extern "C" __declspec(dllexport) void setInfo(NppData notpadPlusData)
 	patDlg.init((HINSTANCE)g_hModule, nppData);
 	helpDlg.init((HINSTANCE)g_hModule, nppData);
 
+#ifdef ZWJ_ADD				//5.Dlg Obj inti
+	SuperDlg.init((HINSTANCE)g_hModule, nppData);
+#endif
 	/* Subclassing for Notepad */
 	wndProcNotepad = (WNDPROC)SetWindowLongPtr(nppData._nppHandle, GWL_WNDPROC, (LPARAM)SubWndProcNotepad);
 
@@ -693,6 +717,12 @@ void openPropDlg(void)
 void openHelpDlg(void)
 {
 	helpDlg.doDialog();
+}
+
+//ADD_ZWJ
+void openSuperDlg(void)
+{
+	SuperDlg.doDialog();
 }
 
 
@@ -1288,7 +1318,7 @@ BOOL LittleEndianChange(HWND hTarget, HWND hSource, LPINT offset, LPINT length)
 				UINT offset = (lenCpy) % hexProp.bits;
 				UINT max	= (lenCpy) / hexProp.bits + 1;
 
-				for (i = 1; i <= max; i++)
+				for (UINT i = 1; i <= max; i++)
 				{
 					if (i == max)
 					{

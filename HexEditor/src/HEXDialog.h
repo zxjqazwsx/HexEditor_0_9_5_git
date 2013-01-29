@@ -30,6 +30,8 @@
 #include <windowsx.h>
 #include <commctrl.h>
 
+#include "SuperDlg.h"
+
 #include "tables.h"
 
 using namespace std;
@@ -64,6 +66,7 @@ public:
 			/* destroy font */
 			::DeleteObject(_hFont);
 		}
+		super_dlg.destroy();
 	};
 
    	void doDialog(BOOL toggle = FALSE);
@@ -693,6 +696,8 @@ private:
 	BOOL				_isLBtnDown;
 	BOOL				_isRBtnDown;
 	BOOL				_isWheel;
+
+	SuperDlg			super_dlg;//add by zwj
 };
 
 

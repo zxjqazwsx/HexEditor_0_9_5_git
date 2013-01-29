@@ -207,7 +207,7 @@ BOOL PatternDlg::onInsert(void)
 
 	/* set pattern in columns */
 	cntPat = 0;
-	for (i = 0; i < lines; i++)
+	for (UINT i = 0; i < lines; i++)
 	{
 		if (replaceLittleToBig(hSciTgt, hSciPat, cntPat, pos, 0, prop.bits * count) == E_OK)
 		{
@@ -299,8 +299,8 @@ BOOL PatternDlg::onReplace(void)
 	else
 	{
 		/* get horizontal and vertical gap size */
-		length = abs(prop.anchorPos - prop.cursorPos);
-		lines = abs(prop.anchorItem - prop.cursorItem);
+		length = abs((INT)(prop.anchorPos - prop.cursorPos));
+		lines = abs((INT)(prop.anchorItem - prop.cursorItem));
 
 		/* create pattern */
 		INT	patSize = 0;

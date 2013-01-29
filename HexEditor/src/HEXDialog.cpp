@@ -26,6 +26,7 @@
 #include <commctrl.h>
 
 
+
 extern char	hexMask[256][3];
 
 
@@ -1905,7 +1906,7 @@ void HexEdit::DumpConvert(LPSTR text, UINT length)
 		UINT offset = length % _pCurProp->bits;
 		UINT max	= length / _pCurProp->bits + 1;
 
-		for (i = 1; i <= max; i++)
+		for (UINT i = 1; i <= max; i++)
 		{
 			if (i == max)
 			{
@@ -2027,6 +2028,9 @@ void HexEdit::TrackMenu(POINT pt)
 	::AppendMenu(hMenu, MF_STRING, 5, _T("Address Width..."));
 	::AppendMenu(hMenu, MF_STRING, 6, _T("Columns..."));
 
+//#ifdef ZWJ_MODIFY  //add TrackMenu   
+	::AppendMenu(hMenu, MF_STRING, 15, _T("As SuperBlock"));
+//#endif
 	/* change language */
 	NLChangeMenu(_hInst, _hParent, hMenu, _T("SettingsMenu"), MF_BYPOSITION);
 
@@ -2154,6 +2158,15 @@ void HexEdit::TrackMenu(POINT pt)
 			_pCurProp->isLittle	^= TRUE;
 			break;
 		}
+//#ifdef ZWJ_MODIFY
+		case 15:
+			{
+				super_dlg.init(_hInst, _nppData);
+				super_dlg.doDialog(cursorPos);
+				//_pCurProp->isLittle	^= TRUE;
+				break;
+			}
+//#endif
 		default:
 			isChanged			= FALSE;
 			break;
@@ -2220,12 +2233,12 @@ void HexEdit::Delete(void)
 	/* get horizontal and vertical gap size */
 	if (_pCurProp->selection == HEX_SEL_BLOCK)
 	{
-		count = abs(_pCurProp->anchorPos  - _pCurProp->cursorPos);
-		lines = abs(_pCurProp->anchorItem - _pCurProp->cursorItem);
+		count = abs((INT)(_pCurProp->anchorPos  - _pCurProp->cursorPos));
+		lines = abs((INT)(_pCurProp->anchorItem - _pCurProp->cursorItem));
 	}
 	else
 	{
-		count = abs(posItr - posBeg);
+		count = abs((INT)(posItr - posBeg));
 	}
 
 	/* set iterator to begin of selection */
@@ -3862,18 +3875,35 @@ void HexEdit::ToggleBookmark(void)
 	ToggleBookmark(_pCurProp->cursorItem);
 }
 
+#define  ZWJ_MODIFY
 void HexEdit::ToggleBookmark(UINT iItem)
 {
 	UINT	isChanged = FALSE;
 
+#ifdef ZWJ_MODIFY
+	vector <tBkMk>::iterator Iter;
+
+	for (Iter =  _pCurProp->vBookmarks.begin( ) ; (Iter !=  _pCurProp->vBookmarks.end( )) && (isChanged == FALSE) ; Iter++ )
+#else
 	for (UINT i = 0; (i < _pCurProp->vBookmarks.size()) && (isChanged == FALSE); i++)
+#endif
 	{
-		if (_pCurProp->vBookmarks[i].iItem == iItem) {
+#ifdef ZWJ_MODIFY
+			if ((*Iter).iItem == iItem) {
 			/* if bookmark exists delete it from list */
-			_pCurProp->vBookmarks.erase(&_pCurProp->vBookmarks[i]);
+			_pCurProp->vBookmarks.erase(Iter);
+#else
+			if (_pCurProp->vBookmarks[i].iItem == iItem) {
+			/* if bookmark exists delete it from list */
+			_pCurProp->vBookmarks.erase(i/*_pCurProp->vBookmarks[i],_pCurProp->vBookmarks[i+1]*/);
+#endif
 			isChanged = TRUE;
 		}
-		else if (_pCurProp->vBookmarks[i].iItem > iItem) {
+#ifdef ZWJ_MODIFY
+			else if ((*Iter).iItem > iItem) {
+#else
+			else if (_pCurProp->vBookmarks[i].iItem > iItem) {
+#endif
 			/* if bookmark dosn't exist on this position attach it and sort list */
 			tBkMk	bm = {iItem * VIEW_ROW, iItem};
 			_pCurProp->vBookmarks.push_back(bm);
@@ -3904,6 +3934,45 @@ void HexEdit::UpdateBookmarks(UINT firstAdd, INT length)
 	RECT	rcNew	= {0};
 	UINT	endPos	= firstAdd + abs(length);
 
+#ifdef ZWJ_MODIFY
+	vector <tBkMk>::iterator Iter;
+
+	for (Iter =  _pCurProp->vBookmarks.begin( ) ; Iter !=  _pCurProp->vBookmarks.end( ); Iter++ ){
+		LONG	addressTest = (*Iter).lAddress;
+		UINT	iItemTest	= (*Iter).iItem;
+		if ((UINT)(*Iter).lAddress >= firstAdd)
+		{
+			/* get old item position */
+			ListView_GetSubItemRect(_hListCtrl, (*Iter).iItem, 0, LVIR_BOUNDS, &rcOld);
+
+			if (((*Iter).lAddress == firstAdd) && (length < 0)) {
+				/* remove bookmark if is in a delete section */
+				_pCurProp->vBookmarks.erase(Iter,Iter+1);
+				Iter--;
+			} else if ((UINT)(*Iter).lAddress > firstAdd) {
+				/* calculate new addresses of bookmarks behind the first address */
+				(*Iter).lAddress += length;
+				(*Iter).iItem = (*Iter).lAddress / VIEW_ROW;
+
+				addressTest = (*Iter).lAddress;
+				iItemTest	= (*Iter).iItem;
+
+				/* if some data was deleted and the changed item matches with the privious one delete it */
+				if((Iter != _pCurProp->vBookmarks.begin()) && ((*Iter).lAddress == ((*(Iter-1)).lAddress))) {
+					_pCurProp->vBookmarks.erase(Iter,Iter+1);
+					Iter--;
+				}
+
+
+				/* redraw new item */
+				ListView_GetSubItemRect(_hListCtrl, (*Iter).iItem, 0, LVIR_BOUNDS, &rcNew);
+				::RedrawWindow(_hListCtrl, &rcNew, NULL, TRUE);
+			}
+			/* redraw old sub item */
+			::RedrawWindow(_hListCtrl, &rcOld, NULL, TRUE);
+		}
+	}
+#else
 	for (UINT i = 0; i < _pCurProp->vBookmarks.size(); i++)
 	{
 		LONG	addressTest = _pCurProp->vBookmarks[i].lAddress;
@@ -3915,7 +3984,7 @@ void HexEdit::UpdateBookmarks(UINT firstAdd, INT length)
 
 			if ((_pCurProp->vBookmarks[i].lAddress == firstAdd) && (length < 0)) {
 				/* remove bookmark if is in a delete section */
-				_pCurProp->vBookmarks.erase(&_pCurProp->vBookmarks[i]);
+				_pCurProp->vBookmarks.erase(&_pCurProp->vBookmarks[i],&_pCurProp->vBookmarks[i+1]);
 				i--;
 			} else if ((UINT)_pCurProp->vBookmarks[i].lAddress > firstAdd) {
 				/* calculate new addresses of bookmarks behind the first address */
@@ -3927,9 +3996,10 @@ void HexEdit::UpdateBookmarks(UINT firstAdd, INT length)
 
 				/* if some data was deleted and the changed item matches with the privious one delete it */
 				if ((i != 0) && (_pCurProp->vBookmarks[i].lAddress == _pCurProp->vBookmarks[i-1].lAddress)) {
-					_pCurProp->vBookmarks.erase(&_pCurProp->vBookmarks[i]);
+					_pCurProp->vBookmarks.erase(&_pCurProp->vBookmarks[i],&_pCurProp->vBookmarks[i+1]);
 					i--;
 				}
+
 
 				/* redraw new item */
 				ListView_GetSubItemRect(_hListCtrl, _pCurProp->vBookmarks[i].iItem, 0, LVIR_BOUNDS, &rcNew);
@@ -3939,6 +4009,7 @@ void HexEdit::UpdateBookmarks(UINT firstAdd, INT length)
 			::RedrawWindow(_hListCtrl, &rcOld, NULL, TRUE);
 		}
 	}
+#endif
 }
 
 void HexEdit::ClearBookmarks(void)
